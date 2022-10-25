@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TokenId",
+  "allOf": [
+    {
+      "$ref": "#/definitions/Uint128"
+    }
+  ],
+  "definitions": {
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}
