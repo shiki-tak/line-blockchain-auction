@@ -1,14 +1,24 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, to_binary, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, WasmMsg, StdResult, Uint128,
+    dynamic_link, to_binary, Addr, BankMsg, Binary, Coin, Contract, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128,
 };
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{auction, list_resolver, list_resolver_read, Auction, ListingToken};
 
-use nft::{ExecuteMsg::{Approve, Transfer, TransferFrom}};
+#[derive(Contract)]
+struct NftContract {
+    address: Addr,
+}
+
+#[dynamic_link(NftContract)]
+trait Nft: Contract {
+    fn transfer(&self, sender: String, recipient: String, value: Uint128);
+    fn transfer_from(&self, sender: String, recipient: String, value: Uint128);
+    fn approve(&self, sender: String, recipient: String, value: Uint128);
+}
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -59,7 +69,7 @@ pub fn execute_listing(
     let listing_token = ListingToken {
         listing_id: listing_id.clone(),
         token_id: id,
-        contract_address: contract_address,
+        contract_address: contract_address.clone(),
         seller: info.sender.clone(),
         max_bid: minimum_bid,
         max_bidder: env.contract.address.clone(),
@@ -68,32 +78,12 @@ pub fn execute_listing(
 
     list_resolver(deps.storage).save(listing_id.as_bytes(), &listing_token)?;
 
-    let res = Response {
-        submessages: vec![],
-        messages: vec![
-            CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: nft_contract_address.clone(),
-                send: vec![],
-                msg: to_binary(&Approve {
-                    recipient: env.contract.address.to_string(),
-                    token_id: id.clone(),
-                })?,
-            }),
-            CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: nft_contract_address,
-                send: vec![],
-                msg: to_binary(&TransferFrom {
-                    sender: info.sender.to_string(),
-                    recipient: String::from(env.contract.address.as_str()),
-                    token_id: id,
-                })?,
-            }),
-        ],
-        attributes: vec![
-            attr("listing", listing_id),
-        ],
-        data: None,
-    };
+    let nft_contract = NftContract {address: contract_address.clone()};
+    nft_contract.approve(env.contract.address.to_string(), env.contract.address.to_string(), id.clone());
+    nft_contract.transfer_from(info.sender.to_string().clone(), env.contract.address.to_string(), id.clone());
+
+    let mut res = Response::default();
+    res.add_attribute("listing", listing_id);
     Ok(res)
 }
 
@@ -125,29 +115,16 @@ pub fn execute_bid(
     list_resolver(deps.storage).save(key, &listing)?;
 
     if env.contract.address != last_bidder {
-        let res = Response {
-            submessages: vec![],
-            messages: vec![
-                CosmosMsg::Bank(BankMsg::Send {
-                    to_address: last_bidder.to_string(),
-                    amount: vec![last_bid],
-                }),
-            ],
-            attributes: vec![
-                attr("bid", listing_id),
-            ],
-            data: None,
-        };
+        let mut res = Response::default();
+        res.add_message(CosmosMsg::Bank(BankMsg::Send {
+            to_address: last_bidder.to_string(),
+            amount: vec![last_bid],
+        }));
+        res.add_attribute("bid", listing_id);
         Ok(res)
     } else {
-        let res = Response {
-            submessages: vec![],
-            messages: vec![],
-            attributes: vec![
-                attr("bid", listing_id),
-            ],
-            data: None,
-        };
+        let mut res = Response::default();
+        res.add_attribute("bid", listing_id);
         Ok(res)
     }
 }
@@ -167,46 +144,24 @@ pub fn execute_withdraw(
     list_resolver(deps.storage).remove(key);
 
     if env.contract.address != listing.max_bidder {
-        let res = Response {
-            submessages: vec![],
-            messages: vec![
-                CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr: listing.contract_address.to_string(),
-                    send: vec![],
-                    msg: to_binary(&Transfer {
-                        recipient: listing.max_bidder.to_string(),
-                        token_id: listing.token_id,
-                    })?,
-                }),
-                CosmosMsg::Bank(BankMsg::Send {
-                    to_address: listing.max_bidder.to_string(),
-                    amount: vec![listing.max_bid],
-                }),
-            ],
-            attributes: vec![
-                attr("listing_sold", listing_id),
-            ],
-            data: None,
-        };
+        let nft_contract = NftContract {address: listing.contract_address.clone()};
+        nft_contract.transfer(env.contract.address.to_string(), listing.max_bidder.to_string(), listing.token_id.clone());
+        
+        let mut res = Response::default();
+        res.add_message(CosmosMsg::Bank(BankMsg::Send {
+            to_address: listing.max_bidder.to_string(),
+            amount: vec![listing.max_bid],
+        }));
+        res.add_attribute("listing_sold", listing_id);
+
         Ok(res)
     } else {
-        let res = Response {
-            submessages: vec![],
-            messages: vec![
-                CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr: listing.contract_address.to_string(),
-                    send: vec![],
-                    msg: to_binary(&Transfer {
-                        recipient: listing.seller.to_string(),
-                        token_id: listing.token_id,
-                    })?,
-                })
-            ],
-            attributes: vec![
-                attr("listing_unsold", listing_id),
-            ],
-            data: None,
-        };
+        let nft_contract = NftContract {address: listing.contract_address.clone()};
+        nft_contract.transfer(env.contract.address.to_string(), listing.seller.to_string(), listing.token_id.clone());
+
+        let mut res = Response::default();
+        res.add_attribute("listing_unsold", listing_id);
+
         Ok(res)
     }
 }

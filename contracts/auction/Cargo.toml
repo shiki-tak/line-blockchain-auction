@@ -13,8 +13,8 @@ backtraces = ["cosmwasm-std/backtraces"]
 library = []
 
 [dependencies]
-cosmwasm-std = { git = "https://github.com/line/cosmwasm", branch = "dynamic_link" }
-cosmwasm-storage = { git = "https://github.com/line/cosmwasm", branch = "dynamic_link" }
+cosmwasm-std = { git = "https://github.com/line/cosmwasm", rev = "cbebb8a2f9666e820361413ce6652029f3bae9f7", features = ["iterator","staking","stargate"] }
+cosmwasm-storage = {  git = "https://github.com/line/cosmwasm", rev = "cbebb8a2f9666e820361413ce6652029f3bae9f7", features = ["iterator"] }
 nft = { path = "../../packages/nft" }
 schemars = "0.8.1"
 semver = "1"
@@ -22,4 +22,4 @@ serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.20" }
 
 [dev-dependencies]
-cosmwasm-schema = { git = "https://github.com/line/cosmwasm", branch = "dynamic_link" }
+cosmwasm-schema = { git = "https://github.com/line/cosmwasm", rev = "cbebb8a2f9666e820361413ce6652029f3bae9f7" }

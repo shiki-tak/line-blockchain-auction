@@ -32,14 +32,14 @@ overflow-checks = true
 backtraces = ["cosmwasm-std/backtraces", "cosmwasm-vm/backtraces"]
 
 [dependencies]
-cosmwasm-std = { git = "https://github.com/line/cosmwasm", branch = "dynamic_link" }
-cosmwasm-storage = { git = "https://github.com/line/cosmwasm", branch = "dynamic_link" }
+cosmwasm-std = { git = "https://github.com/line/cosmwasm", rev = "cbebb8a2f9666e820361413ce6652029f3bae9f7", features = ["iterator","staking","stargate"] }
+cosmwasm-storage = {  git = "https://github.com/line/cosmwasm", rev = "cbebb8a2f9666e820361413ce6652029f3bae9f7", features = ["iterator"] }
 schemars = "0.8.1"
 bincode = "1.0"
-serde = { version = "1.0.125", default-features = false, features = ["derive"] }
-thiserror = { version = "1.0.24" }
-serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+thiserror = "1.0"
+serde_json = "1.0"
 
 [dev-dependencies]
-cosmwasm-vm = { git = "https://github.com/line/cosmwasm", branch = "dynamic_link", default-features = false }
-cosmwasm-schema = { git = "https://github.com/line/cosmwasm", branch = "dynamic_link" }
+cosmwasm-vm = { git = "https://github.com/line/cosmwasm", rev = "cbebb8a2f9666e820361413ce6652029f3bae9f7", default-features = false }
+cosmwasm-schema = { git = "https://github.com/line/cosmwasm", rev = "cbebb8a2f9666e820361413ce6652029f3bae9f7" }

@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, to_binary, to_vec, Binary, Deps, DepsMut, Env, MessageInfo, Response,
+    attr, callable_point, to_binary, to_vec, Binary, Deps, DepsMut, Env, MessageInfo, Response,
     StdResult, Storage, Uint128,
 };
 
@@ -50,20 +50,20 @@ pub fn execute(
         ExecuteMsg::Transfer {
             recipient,
             token_id,
-        } => transfer(deps, env, info.sender.to_string(), recipient, token_id),
+        } => handle_transfer(deps, env, info.sender.to_string(), recipient, token_id),
         ExecuteMsg::TransferFrom {
             sender,
             recipient,
             token_id,
-        } => transfer_from(deps, env, sender, recipient, token_id),
+        } => handle_transfer_from(deps, env, sender, recipient, token_id),
         ExecuteMsg::Approve {
             recipient,
             token_id,
-        } => approve(deps, env, info.sender.to_string(), recipient, token_id),
+        } => handle_approve(deps, env, info.sender.to_string(), recipient, token_id),
         ExecuteMsg::ApproveForAll { opeartor, approved } => {
-            approve_for_all(deps, env, info.sender.to_string(), opeartor, approved)
+            handle_approve_for_all(deps, env, info.sender.to_string(), opeartor, approved)
         }
-        ExecuteMsg::Mint { name, uri } => mint(deps, env, info.sender.to_string(), name, uri),
+        ExecuteMsg::Mint { name, uri } => handle_mint(deps, env, info.sender.to_string(), name, uri),
     }
 }
 
@@ -74,14 +74,14 @@ pub fn query(
     msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Balance { address } => balance(deps, address),
-        QueryMsg::Owner { token_id } => owner(deps, token_id),
-        QueryMsg::Allowance { token_id } => allowance(deps, token_id),
-        QueryMsg::Token { token_id } => token(deps, token_id),
+        QueryMsg::Balance { address } => query_balance(deps, address),
+        QueryMsg::Owner { token_id } => query_owner(deps, token_id),
+        QueryMsg::Allowance { token_id } => query_allowance(deps, token_id),
+        QueryMsg::Token { token_id } => query_token(deps, token_id),
     }
 }
 
-fn transfer(
+fn handle_transfer(
     deps: DepsMut,
     _env: Env,
     sender: String,
@@ -93,7 +93,7 @@ fn transfer(
     execute_transfer(deps, sender, recipient, token_id)
 }
 
-fn transfer_from(
+fn handle_transfer_from(
     deps: DepsMut,
     _env: Env,
     sender: String,
@@ -173,7 +173,7 @@ fn update_owner_tokens_store(
     Ok(())
 }
 
-fn approve(
+fn handle_approve(
     deps: DepsMut,
     _env: Env,
     sender: String,
@@ -202,7 +202,7 @@ fn approve(
     Ok(res)
 }
 
-fn approve_for_all(
+fn handle_approve_for_all(
     deps: DepsMut,
     _env: Env,
     sender: String,
@@ -228,7 +228,7 @@ fn approve_for_all(
     Ok(res)
 }
 
-fn mint(
+fn handle_mint(
     deps: DepsMut,
     _env: Env,
     owner: String,
@@ -262,7 +262,7 @@ fn mint(
     Ok(res)
 }
 
-fn balance(
+fn query_balance(
     deps: Deps,
     address: String,
 ) -> StdResult<Binary> {
@@ -270,7 +270,7 @@ fn balance(
     Ok(to_binary(&res.len())?)
 }
 
-fn owner(
+fn query_owner(
     deps: Deps,
     value: Uint128,
 ) -> StdResult<Binary> {
@@ -279,7 +279,7 @@ fn owner(
     Ok(to_binary(&address)?)
 }
 
-fn allowance(
+fn query_allowance(
     deps: Deps,
     value: Uint128,
 ) -> StdResult<Binary> {
@@ -289,7 +289,7 @@ fn allowance(
     Ok(to_binary(&res)?)
 }
 
-fn token(
+fn query_token(
     deps: Deps,
     value: Uint128,
 ) -> StdResult<Binary> {
@@ -394,4 +394,19 @@ fn is_valid_symbol(symbol: &str) -> bool {
         return false;
     }
     return true;
+}
+
+#[callable_point]
+fn transfer(deps: DepsMut, env: Env, sender: String, recipient: String, value: Uint128) {
+    handle_transfer(deps, env, sender, recipient, value).unwrap();
+}
+
+#[callable_point]
+fn transfer_from(deps: DepsMut, env: Env, sender: String, recipient: String, value: Uint128) {
+    handle_transfer_from(deps, env, sender, recipient, value).unwrap();
+}
+
+#[callable_point]
+fn approve(deps: DepsMut, env: Env, sender: String, recipient: String, value: Uint128) {
+    handle_approve(deps, env, sender, recipient, value).unwrap();
 }
