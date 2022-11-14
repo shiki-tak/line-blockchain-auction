@@ -1,0 +1,46 @@
+[package]
+name = "nft"
+version = "0.1.0"
+authors = ["shiki.tak <shiki.tak@gmail.com>"]
+edition = "2018"
+license = "Apache-2.0"
+
+exclude = [
+  # Those files are rust-optimizer artifacts. You might want to commit them for convenience but they should not be part of the source code publication.
+  "contract.wasm",
+  "hash.txt",
+]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'
+incremental = false
+overflow-checks = true
+
+[features]
+# for quicker tests, cargo test --lib
+# for more explicit tests, cargo test --features=backtraces
+backtraces = ["cosmwasm-std/backtraces", "cosmwasm-vm/backtraces"]
+
+[dependencies]
+cosmwasm-std = { git = "https://github.com/line/cosmwasm", branch = "dynamic_link" }
+cosmwasm-storage = { git = "https://github.com/line/cosmwasm", branch = "dynamic_link" }
+schemars = "0.8.1"
+bincode = "1.0"
+serde = { version = "1.0.125", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.24" }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+
+[dev-dependencies]
+cosmwasm-vm = { git = "https://github.com/line/cosmwasm", branch = "dynamic_link", default-features = false }
+cosmwasm-schema = { git = "https://github.com/line/cosmwasm", branch = "dynamic_link" }
